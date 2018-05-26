@@ -1,44 +1,67 @@
 #!/usr/bin/env python3
 
-original_file = "/root/SecLists/Passwords/bt4-password.txt"
+#Squeaky takes any wordlist and cleans out dodgey characters and short words#
+
+import time
+import multiprocessing
+from typing import Generator
+
+
+# Set your paths and min word length here:
+original_file = "/root/SecLists/Passwords/"
 new_file = "/root/SecLists/Passwords/consolidated.txt"
-
-def prnt_lengths():
-    with open(original_file, "rb") as file:
-    x = coun((line) for line in file.readlines())
+min_word_length = 6
 
 
-def read_file_comprehen():
-    with open(original_file, "rb") as file:
+def get_file_length(file: str) -> int:
+    i :int = 0
+    wrds = read_file_comprehen(file)
+    for w in wrds:
+        i += 1
+    return i
+
+
+def read_file_comprehen(path_to_file: str) -> Generator:
+    with open(path_to_file, "rb") as file:
         file_list = ([line] for line in file.readlines())
-        file.close()
     return file_list
 
+
 def write_new_file(word: str):
-    newfile = new_file
-    with open(newfile, "a") as file:
+    with open(new_file, "a") as file:
         file.write(word)
-        file.close()
 
-def go():
-    words = read_file_comprehen()
-    errors = []
-    for i in words:
+
+def go(word):
+
+    for x in word:
         try:
-            for x in words:
-                for y in x:
-                    z = str(y.decode("utf-8"))
-                    write_new_file(z)
-            print("Total Errors: " + str(errors.__len__()))
-            for er in errors:
-                print(er)
-
+            z = str(x.decode("utf-8"))
+            if not (len(z) < (min_word_length + 1)):
+                write_new_file(z)
+            else:
+                continue
         except UnicodeDecodeError as a:
-            print(str(a))
-            errors.append(str(a))
             continue
 
 
-if __name__ == '__main__':
-    go()
+def main():
 
+    t1 = time.perf_counter()
+    words = read_file_comprehen(original_file)
+    with multiprocessing.Pool(processes=32) as pool:
+        pool.map(go, words)
+
+    ridgy = get_file_length(original_file)
+    newy = get_file_length(new_file)
+    diff = (ridgy - newy)
+
+    print("Number of words in original file: " + str(ridgy))
+    print("Number of words in new file: " + str(newy))
+    print("Words Removed: " + str(diff))
+    t2 = time.perf_counter()
+    print("\nTotal processing time: " + str(t2 - t1) + " sec")
+
+
+if __name__ == '__main__':
+    main()
