@@ -5,7 +5,7 @@
 import time
 import multiprocessing
 from typing import Generator, List
-
+import argparse
 #TODO: Point at dir and let her rip, clean duplicates, do gen vs list
 
 
@@ -53,9 +53,37 @@ class Squeaky:
                 continue
         return True
 
+    def parse_arguments(self):
+        new_args = argparse.ArgumentParser()
+        new_args.add_argument("Input file")
+        new_args.add_argument("output file")
+        new_args.add_argument("-d", "--dir", help="Input directory of wordlists")
+        new_args.add_argument("-z", "--procs", help="Number of Processes")
+        parsed_args = new_args.parse_args()
+        return parsed_args
+
+    def clear_screen(self):
+        try:
+            import os
+            os.system("clear")
+        except Exception as e:
+            print("Error! in clearscreen: " + str(e))
+
+    def bruce(self):
+        print("                                      ___          ")
+        print("  _____________ ____  ____________ ___  /______  __")
+        print("  __  ___/  __ `/  / / /  _ \  __ `/_  //_/_  / / /")
+        print("  _(__  )/ /_/ // /_/ //  __/ /_/ /_  ,<  _  /_/ / ")
+        print("  /____/ \__, / \__,_/ \___/\__,_/ /_/|_| _\__, /  ")
+        print("           /_/                            /____/   \n\n")
+
+
 def main():
     t1 = time.perf_counter()
     new_squeaky = Squeaky()
+    new_squeaky.clear_screen()
+    new_squeaky.bruce()
+    new_squeaky.parse_arguments()
     words = new_squeaky.read_file(new_squeaky.input_files)
     with multiprocessing.Pool(processes=32) as pool:
         pool.map(new_squeaky.process_word, words)
