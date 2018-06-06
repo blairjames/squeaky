@@ -1,92 +1,85 @@
 #!/usr/bin/env python3
 
-#Squeaky takes any wordlist and cleans out dodgey characters, short words and duplicates.
+#Squeaky takes any wordlist and cleans out problematic characters, words below set length and removes duplicates.
 import argparse
-import os
 import time
-import multiprocessing
+import squeaky_utils
+import os
 from typing import Generator, List
 
-
+#TODO: Read in existing output list as part of dedup
 class Squeaky:
 
     def __init__(self):
         '''
-        Instance Variables
+        Instance variables assigned upon object construction.
         '''
         try:
-            self.clean: set = set()
             self.input_files: str = ""
             self.output_file: str = ""
             self.min_word_length: int = 0
-            self.procs: int = os.cpu_count() * 4
+            self.starting_wordcount: int = 0
+            self.finished_wordcount: int = 0
             self.dir_flag: bool = False
             self.dedup_flag: bool = False
+            self.utils = squeaky_utils.SqueakyUtils()
         except Exception as e:
             print("Error! in init: " + str(e))
 
-    def line_count(self, file: str) -> int:
+    def get_words_from_file(self, path_to_file: str, open_as_bytes: bool) -> List:
+        ''''
+        Open input wordlist, read into a generator to be used in the application.
+        '''
         try:
-            with open(file, "rb") as openfile:
-                length = (1 for ln in openfile.readlines())
-            return sum(length)
-        except Exception as e:
-            print("Error! in get_file_length: " + str(e))
-
-    def clear_output_file(self) -> bool:
-        try:
-            with open(self.output_file, "w") as file:
-                file.write("")
-                file.close()
-            return True
-        except Exception as e:
-            print("Error! in clear_output_file: " + str(e))
-
-    def file_generator(self, path_to_file: str) -> Generator:
-        try:
+            if open_as_bytes:
+                settings = "rb"
+            else:
+                settings = "r"
             t1 = time.perf_counter()
-            with open(path_to_file, "rb") as file:
-                word_list = (line for line in file.readlines())
+            with open(path_to_file, settings) as file:
+                word_list = [line for line in file.readlines()]
             t2 = time.perf_counter()
-            print("Read word list: " + str(round(t2 - t1, 4)) + " sec")
+            print("Read word list from disk: " + str(round(t2 - t1, 5)) + " sec")
             return word_list
         except Exception as e:
             print("Error! in read_file: " + str(e))
 
-    def filter_by_length(self, wrds: Generator) -> Generator:
+    def filter_by_length(self, wrds):
+        '''
+        Parse out words below the length set with the "-l" switch.
+        returns a generator.
+        '''
         try:
+            tp = time.perf_counter
+            t1 = tp()
+            word_lst = [w for w in wrds]
+            before_words: int = sum([1 for x in word_lst])
+            min_len: int = self.min_word_length
+            filtered: List = [w for w in word_lst if len(w) > min_len]
+            after_words: int = sum([1 for x in filtered])
+            t2 = tp()
             print("\n*** Filter by word length ***")
-            t1 = time.perf_counter()
-            word_lst = list(w for w in wrds)
-            word_gen_1 = (w for w in word_lst)
-            word_gen_2 = (w for w in word_lst)
-            before_words: int = sum(1 for x in word_gen_1)
             print("Words before length filter: " + str(before_words))
-            min_len = self.min_word_length
-
-            filtered = (d for d in word_gen_2 if int(len(d)) > int(min_len))
-            cp_filtered = list(f for f in filtered)
-            filter1 = (c for c in cp_filtered)
-            filter2 = (c for c in cp_filtered)
-            filt_words: int = sum(1 for n in filter1)
-            dif_words = int(before_words) - int(filt_words)
-            print("Words after length filter: " + str(filt_words))
-            print("Words Removed by Length Filter: " + str(dif_words))
-            t2 = time.perf_counter()
-            print("Time to filter by Length: " + str(round(t2 - t1, 4)) + " sec")
-            return (f for f in filter2)
+            print("Words after length filter: " + str(after_words))
+            print("Words removed by length filter: " + str(before_words - after_words))
+            print("Filter by len method: " + str(round(t2 - t1, 6)))
+            self.finished_wordcount = after_words
+            return filtered
         except Exception as e:
             print("Error! in filter_by_length: " + str(e))
 
-    def process_words(self) -> Generator:
+    def process_words(self, words):
+        '''
+        Iterates input words as bytes to avoid Unicode exceptions.
+        performs controlled decode of all words to utf-8, catches any exceptions and parses them out.
+        returns generator
+        '''
         try:
-            print("*** Remove Unicode errors ***")
-            words = self.file_generator(self.input_files)
-            words_1 = self.file_generator(self.input_files)
-            starting_len = (str(sum(1 for x in words_1)))
+            t1 = time.perf_counter()
+            starting_len: int = sum([1 for x in words])
+            self.starting_wordcount = starting_len
             decoded_list = []
             apd = decoded_list.append
-            t1 = time.perf_counter()
             for word in words:
                 try:
                     decoded = word.decode("utf-8")
@@ -94,89 +87,52 @@ class Squeaky:
                     apd(word_str)
                 except UnicodeDecodeError:
                     pass
+            finished_len: int = sum([1 for d in decoded_list])
+            dif = starting_len - finished_len
             t2 = time.perf_counter()
-            print("Time to process words for Unicode errors: " + str(round(t2 - t1, 4)) + " sec")
-            finished_len = sum(1 for d in decoded_list)
-            dif = int(starting_len) - int(finished_len)
             print("Words before Unicode errors removed: " + str(starting_len))
             print("Words after Unicode errors removed: " + str(finished_len))
             print("Words with errors removed: " + str(dif))
-            final = (d for d in decoded_list)
-            if self.min_word_length > 0:
-                word_len = self.filter_by_length(final)
-                final = word_len
-            if self.dedup_flag:
-                deduped = self.de_duplicate(final)
-                final = deduped
-            return final
+            print("Time to remove Unicode errors: " + str(round(t2 - t1, 4)) + " sec")
+            self.finished_wordcount = finished_len
+            #Test - return gen and listify vs return list
+            return decoded_list
+
         except Exception as e:
             print("Error! in process_words: " + str(e))
 
-    def de_duplicate(self, word_list: Generator) -> Generator:
+    def de_duplicate(self, word_list):
+        '''
+        Removes any duplicate entries using the "set()" function.
+        Returns generator
+        '''
         try:
-            print("\n*** Remove Duplicates ***")
-            cp = list(w for w in word_list)
-            words = (c for c in cp)
-            words2 = (c for c in cp)
-            start_words: int = sum(1 for i in words)
-            print("Words before removal of duplicates: " + str(start_words))
             t1 = time.perf_counter()
-            unique = set(words2)
-            deduped1 = (u for u in unique)
-            deduped2 = (u for u in unique)
-            after_words: int = sum(1 for i in deduped1)
-            t2 = time.perf_counter()
+            print("\n*** Removing Duplicates ***")
+            start_words = sum([1 for i in word_list])
+            print("Words before removal of duplicates: " + str(start_words))
+
+            unique = set(word_list)
+
+            after_words = sum([1 for i in unique])
+
             diff = int(start_words) - int(after_words)
+
+            t2 = time.perf_counter()
+
             print("Words after removal of duplicates: " + str(after_words))
             print("Time to remove duplicates: " + str(round(t2 - t1, 4)) + " sec")
             print("Duplicate words removed: " + str(diff))
-            return (d for d in deduped2)
+            return unique
+
         except Exception as e:
             print("Error! in de_duplicate: " + str(e))
 
-    def parse_arguments(self) -> argparse.ArgumentParser.parse_args:
-        try:
-            new_args = argparse.ArgumentParser()
-            new_args.add_argument("input_file")
-            new_args.add_argument("output_file")
-            new_args.add_argument("-d", "--dir",
-                                  help="Input a directory of wordlists instead of single file.",
-                                  action="store_true", default=False)
-
-            new_args.add_argument("-l", "--len", type=int,
-                                  help="Minimum word length, words shorter than "
-                                  "specified length will be cleansed.", default=0)
-
-            new_args.add_argument("-dd", "--dedup",
-                                  help="delete duplicate words in word list",
-                                  action="store_true", default=False)
-            parsed_args = new_args.parse_args()
-            return parsed_args
-        except Exception as e:
-            print("Error!! in parse_arguments: " + str(e))
-
-    def clear_screen(self) -> bool:
-        try:
-            os.system("clear")
-            return True
-        except Exception as e:
-            print("Error! in clearscreen: " + str(e))
-
-    def bruce(self):
-        try:
-            print("                                      ___          ")
-            print("  _____________ ____  ____________ ___  /______  __")
-            print("  __  ___/  __ `/  / / /  _ \  __ `/_  //_/_  / / /")
-            print("  _(__  )/ /_/ // /_/ //  __/ /_/ /_  ,<  _  /_/ / ")
-            print("  /____/ \__, / \__,_/ \___/\__,_/ /_/|_| _\__, /  ")
-            print("           /_/                            /____/   \n\n")
-            print("     Lean, Mean, List Cleaning Machine\n\n")
-        except Exception as e:
-            print("Error! in bruce: " + str(e))
-
     def set_instance_vars(self, args: argparse) -> bool:
+        '''
+        Set Instance vars using user inputs.
+        '''
         try:
-            self.dedup_flag: bool = args.dedup
             self.dir_flag: bool = args.dir
             self.min_word_length: int = args.len
             self.input_files: str = args.input_file
@@ -185,59 +141,79 @@ class Squeaky:
         except Exception as e:
             print("Error! in set_instance_vars: " + str(e))
 
-    def bulk_write(self, clean: Generator) -> bool:
+    def bulk_write(self, clean) -> bool:
+        '''
+        Takes generator as input and uses one big ".writelines()" to fully utilise IO buffers.
+        Generator means no loading into memory and no blocking on the process. It's fast for disk IO.
+        '''
         try:
             print("\n*** Writing to Disk ***")
             t1 = time.perf_counter()
-            self.clear_output_file()
             with open(self.output_file, "a") as bulk_file:
                 bulk_file.writelines(clean)
             t2 = time.perf_counter()
-            print("Time to write to file: " + str(round(t2 - t1, 4)))
+            print("Time to write to file: " + str(round(t2 - t1, 6)) + " sec")
             return True
         except TypeError as t:
             print("Type Error! in bulk_write. Check input iterator is not passed in as NULL. exception: " + str(t))
         except Exception as e:
             print("Error! in bulk_write: " + str(e))
 
-    def go(self):
-        try:
-            print("Ready..")
-            time.sleep(.2)
-            print("Set..")
-            time.sleep(.2)
-            print("\nGO!!\n")
-            time.sleep(.2)
-        except Exception as e:
-            print("Error!! in go: " + str(e))
-
     def builder(self):
+        '''
+        Builder Method to build new squeaky objects
+        '''
         try:
             new_squeaky = Squeaky()
-            new_squeaky.clear_screen()
-            new_squeaky.bruce()
-            arguments = new_squeaky.parse_arguments()
+            self.utils.clear_screen()
+            self.utils.bruce()
+            arguments = self.utils.parse_arguments()
             new_squeaky.set_instance_vars(arguments)
-            new_squeaky.go()
             return new_squeaky
         except Exception as e:
             print("Error!! in builder: " + str(e))
 
+    def director(self):
+        '''
+        Co-ordinates the flow of execution.
+        '''
+        try:
+            t1 = time.perf_counter()
+            new_squeaky = Squeaky().builder()
+
+            print("*** Removing Unicode errors ***")
+            word_list_from_file = new_squeaky.get_words_from_file(new_squeaky.input_files, True)
+            processed = new_squeaky.process_words(word_list_from_file)
+
+            if new_squeaky.min_word_length > 0:
+                filtered_len = new_squeaky.filter_by_length(processed)
+                processed = filtered_len
+
+            print("\n*** Reading current output file from disk ***")
+            existing_output_file = new_squeaky.get_words_from_file(new_squeaky.output_file, False)
+            deduped = new_squeaky.de_duplicate(processed + existing_output_file)
+            processed = deduped
+
+            new_squeaky.utils.clear_output_file(new_squeaky.output_file)
+            new_squeaky.bulk_write(processed)
+
+            t2 = time.perf_counter()
+
+            print("\n*** Completed Successfully ***")
+            print("Output file: " + str(new_squeaky.output_file))
+            print("Total processing time: " + str(round(t2 - t1, 6)) + " sec\n")
+        except Exception as e:
+            print("Error! in director: " + str(e))
 
 def main():
+    '''
+    The main(), triggers execution.
+    '''
     try:
-        new_squeaky = Squeaky().builder()
-        t1 = time.perf_counter()
-        processed: Generator = new_squeaky.process_words()
-        new_squeaky.bulk_write(processed)
-        t2 = time.perf_counter()
-        print("\n*** Completed Successfully ***")
-        print("Output file: " + str(new_squeaky.output_file))
-        print("Total processing time: " + str(round(t2 - t1, 4)) + " sec\n")
+        Squeaky().builder().director()
 
     except Exception as e:
         print("Error! in squeaky.main: " + str(e))
 
 if __name__ == '__main__':
     main()
-
