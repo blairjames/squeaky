@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import time
 import argparse
 import os
+
 
 class SqueakyUtils:
 
@@ -27,12 +27,12 @@ class SqueakyUtils:
             new_args.add_argument("input_file")
             new_args.add_argument("output_file")
             new_args.add_argument("-d", "--dir",
-                                  help="Input a directory of wordlists instead of single file.",
+                                  help="Input a directory to process for word lists. (\".txt\" files) ",
                                   action="store_true", default=False)
 
             new_args.add_argument("-l", "--len", type=int,
                                   help="Minimum word length, words shorter than "
-                                  "specified length will be cleansed.", default=0)
+                                  "specified length will be removed.", default=0)
 
             new_args.add_argument("-dd", "--dedup",
                                   help="delete duplicate words in word list",
@@ -66,17 +66,3 @@ class SqueakyUtils:
             print("     Lean, Mean, List Cleaning Machine\n\n")
         except Exception as e:
             print("Error! in bruce: " + str(e))
-
-    def go(self):
-        '''
-        Ready, set, go.
-        '''
-        try:
-            print("Ready..")
-            time.sleep(.2)
-            print("Set..")
-            time.sleep(.2)
-            print("\nGO!!\n")
-            time.sleep(.2)
-        except Exception as e:
-            print("Error!! in go: " + str(e))
