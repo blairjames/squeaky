@@ -129,7 +129,7 @@ class Squeaky:
             self.dir_flag: bool = args.dir
             self.min_word_length: int = args.len
             self.input_file: str = args.input_file
-            self.output_file: str = args.output_file
+            self.output_file = self.utils.check_file_exists(args.output_file)
             self.dedup_flag: bool = args.dedup
             return True
         except Exception as e:

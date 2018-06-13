@@ -34,9 +34,10 @@ class SqueakyUtils:
                                   help="Minimum word length, words shorter than "
                                   "specified length will be removed.", default=0)
 
-            new_args.add_argument("-dd", "--dedup",
+            new_args.add_argument("-u", "--unique",
                                   help="delete duplicate words in word list",
                                   action="store_true", default=False)
+
             parsed_args = new_args.parse_args()
             return parsed_args
         except Exception as e:
@@ -51,6 +52,29 @@ class SqueakyUtils:
             return True
         except Exception as e:
             print("Error! in clearscreen: " + str(e))
+
+    def check_file_exists(self, filename: str):
+        ''' If filename parameter does not exist, create it.
+        '''
+        try:
+            import os
+            import subprocess
+            file = str(filename)
+            if (os.path.isfile(file)):
+                return True
+            else:
+                tch = ("/bin/touch " + file)
+                touch_file = subprocess.run([tch], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE, shell=True)
+                if "Permission" in str(touch_file.stderr):
+                    raise AssertionError
+                if touch_file.returncode != 0:
+                    raise Exception
+                return True
+        except AssertionError as a:
+            print("ERROR! - in check_file_exists Insufficient Permissions: " + str(a))
+        except Exception as e:
+            print("ERROR! - In \"check_file_exists\": " + str(e))
 
     def bruce(self):
         '''
