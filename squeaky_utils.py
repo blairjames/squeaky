@@ -26,6 +26,9 @@ class SqueakyUtils:
             new_args = argparse.ArgumentParser()
             new_args.add_argument("input_file")
             new_args.add_argument("output_file")
+            new_args.add_argument("-e", "--encoding",
+                                  help="Remove words that cause exceptions when attempting to decode to unicode.",
+                                  action="store_true", default=False)
             new_args.add_argument("-d", "--dir",
                                   help="Input a directory to process for word lists. (\".txt\" files) ",
                                   action="store_true", default=False)
@@ -35,7 +38,7 @@ class SqueakyUtils:
                                   "specified length will be removed.", default=0)
 
             new_args.add_argument("-u", "--unique",
-                                  help="delete duplicate words in word list",
+                                  help="Delete duplicate words in word list",
                                   action="store_true", default=False)
 
             parsed_args = new_args.parse_args()
@@ -87,6 +90,6 @@ class SqueakyUtils:
             print("  _(__  )/ /_/ // /_/ //  __/ /_/ /_  ,<  _  /_/ / ")
             print("  /____/ \__, / \__,_/ \___/\__,_/ /_/|_| _\__, /  ")
             print("           /_/                            /____/   \n\n")
-            print("     Lean, Mean, List Cleaning Machine\n\n")
+            print("\n     Lean, Mean, List Cleaning Machine\n         squeaky@blairjames.com\n")
         except Exception as e:
             print("Error! in bruce: " + str(e))

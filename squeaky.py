@@ -5,13 +5,10 @@ import argparse
 import time
 import squeaky_utils
 import os
-import asyncio
 from typing import List
 
 
-#TODO: Val for output file exists
 class Squeaky:
-
     def __init__(self):
         '''
         Instance variables assigned upon object construction.
@@ -24,12 +21,13 @@ class Squeaky:
             self.finished_wordcount: int = 0
             self.dir_flag: bool = False
             self.dedup_flag: bool = False
+            self.encoding_flag: bool = False
             self.unicode: bool = True
             self.utils = squeaky_utils.SqueakyUtils()
         except Exception as e:
             print("Error! in init: " + str(e))
 
-    async def get_words_from_file(self, path_to_file: str, open_as_bytes: bool) -> List:
+    def get_words_from_file(self, path_to_file: str, open_as_bytes: bool) -> List:
         ''''
         Open input wordlist, read into a list to be used in the application.
         '''
@@ -47,7 +45,7 @@ class Squeaky:
         except Exception as e:
             print("Error! in read_file: " + str(e))
 
-    async def filter_by_length(self, wrds):
+    def filter_by_length(self, wrds):
         '''
         Parse out words below the length set with the "-l" switch.
         '''
@@ -70,7 +68,7 @@ class Squeaky:
         except Exception as e:
             print("Error! in filter_by_length: " + str(e))
 
-    async def process_words(self, words: List):
+    def process_words(self, words: List):
         '''
         Iterates input words as bytes to avoid Unicode exceptions.
         performs controlled decode of all words to utf-8, catches any exceptions and parses them out.
@@ -95,13 +93,11 @@ class Squeaky:
             print("Words with errors removed: " + str(dif))
             print("Time to remove Unicode errors: " + str(round(t2 - t1, 5)) + " sec")
             self.finished_wordcount = finished_len
-
-            #Test - return gen and listify vs return list
             return decoded_list
         except Exception as e:
             print("Error! in process_words: " + str(e))
 
-    async def de_duplicate(self, word_list):
+    def de_duplicate(self, word_list):
         '''
         Removes any duplicate entries using the "set()" function.
         '''
@@ -126,6 +122,7 @@ class Squeaky:
         Set Instance vars using user inputs.
         '''
         try:
+            self.encode_flag: bool = args.encoding
             self.dir_flag: bool = args.dir
             self.min_word_length: int = args.len
             self.input_file: str = args.input_file
@@ -135,7 +132,7 @@ class Squeaky:
         except Exception as e:
             print("Error! in set_instance_vars: " + str(e))
 
-    async def bulk_write(self, clean) -> bool:
+    def bulk_write(self, clean) -> bool:
         '''
         Takes list as input and uses one big ".writelines()" to fully utilise IO buffers.
         '''
@@ -166,7 +163,7 @@ class Squeaky:
         except Exception as e:
             print("Error!! in builder: " + str(e))
 
-    async def director(self):
+    def director(self):
         '''
         Co-ordinates the flow of execution.
         '''
@@ -193,7 +190,7 @@ class Squeaky:
 
             for word_list in word_lists:
                 print("\nProcessing List: " + word_list)
-                await self.runner(word_list)
+                self.runner(word_list)
 
             t2 = time.perf_counter()
             print("\n*** Completed Successfully ***")
@@ -203,26 +200,26 @@ class Squeaky:
         except Exception as e:
             print("Error! in director: " + str(e))
 
-    async def runner(self, word_list):
+    def runner(self, word_list):
         try:
             processed = []
 
             if self.unicode:
                 print("*** Removing Unicode errors ***")
-                word_list_from_file = await self.get_words_from_file(word_list, True)
-                processed = await self.process_words(word_list_from_file)
+                word_list_from_file = self.get_words_from_file(word_list, True)
+                processed = self.process_words(word_list_from_file)
 
             if self.min_word_length > 0:
-                filtered_len = await self.filter_by_length(processed)
+                filtered_len = self.filter_by_length(processed)
                 processed = filtered_len
 
             if self.dedup_flag:
                 print("\n*** Reading current output file from disk ***")
-                existing_output_file = await self.get_words_from_file(self.output_file, False)
-                deduped = await self.de_duplicate(existing_output_file + processed)
+                existing_output_file = self.get_words_from_file(self.output_file, False)
+                deduped = self.de_duplicate(existing_output_file + processed)
                 processed = deduped
                 self.utils.clear_output_file(self.output_file)
-            await self.bulk_write(processed)
+            self.bulk_write(processed)
 
         except Exception as e:
             print("Error! in runner: " + str(e))
@@ -233,8 +230,7 @@ def main():
     '''
     try:
         s = Squeaky().builder()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete( s.director())
+        s.director()
 
     except Exception as e:
         print("Error! in squeaky.main: " + str(e))
