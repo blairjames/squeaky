@@ -4,6 +4,7 @@
 import argparse
 import time
 import squeaky_utils
+import gc
 import os
 from typing import List
 
@@ -20,9 +21,7 @@ class Squeaky:
             self.starting_wordcount: int = 0
             self.finished_wordcount: int = 0
             self.dir_flag: bool = False
-            self.dedup_flag: bool = False
-            self.encoding_flag: bool = False
-            self.unicode: bool = True
+            self.unique_flag: bool = False
             self.utils = squeaky_utils.SqueakyUtils()
         except Exception as e:
             print("Error! in init: " + str(e))
@@ -37,13 +36,14 @@ class Squeaky:
             else:
                 settings = "r"
             t1 = time.perf_counter()
+            self.utils.check_file_exists(path_to_file)
             with open(path_to_file, settings) as file:
                 word_list = [line for line in file.readlines()]
             t2 = time.perf_counter()
             print("Read word list from disk: " + str(round(t2 - t1, 5)) + " sec")
             return word_list
         except Exception as e:
-            print("Error! in read_file: " + str(e))
+            print("Error! in get_words_from_file: " + str(e))
 
     def filter_by_length(self, wrds):
         '''
@@ -68,7 +68,7 @@ class Squeaky:
         except Exception as e:
             print("Error! in filter_by_length: " + str(e))
 
-    def process_words(self, words: List):
+    def process_words(self, words: List) -> List:
         '''
         Iterates input words as bytes to avoid Unicode exceptions.
         performs controlled decode of all words to utf-8, catches any exceptions and parses them out.
@@ -122,23 +122,23 @@ class Squeaky:
         Set Instance vars using user inputs.
         '''
         try:
-            self.encode_flag: bool = args.encoding
+            self.unique_flag: bool = args.unique
             self.dir_flag: bool = args.dir
             self.min_word_length: int = args.len
             self.input_file: str = args.input_file
-            self.output_file = self.utils.check_file_exists(args.output_file)
-            self.dedup_flag: bool = args.dedup
+            self.output_file = args.output_file
             return True
         except Exception as e:
             print("Error! in set_instance_vars: " + str(e))
 
-    def bulk_write(self, clean) -> bool:
+    def bulk_write(self, clean: List) -> bool:
         '''
         Takes list as input and uses one big ".writelines()" to fully utilise IO buffers.
         '''
         try:
             print("\n*** Writing to Disk ***")
             t1 = time.perf_counter()
+            self.utils.check_file_exists(self.output_file)
             with open(self.output_file, "a") as bulk_file:
                 bulk_file.writelines(clean)
             t2 = time.perf_counter()
@@ -173,7 +173,6 @@ class Squeaky:
             word_lists = []
             if new_squeaky.input_file.endswith("/"):
                 new_squeaky.input_file = new_squeaky.input_file.rstrip("/")
-
             if new_squeaky.dir_flag:
                 t22 = time.perf_counter()
                 add_to_word_lists = word_lists.append
@@ -187,38 +186,35 @@ class Squeaky:
                 print("number of lists: " + str(len(word_lists)))
             else:
                 word_lists.append(self.input_file)
-
             for word_list in word_lists:
-                print("\nProcessing List: " + word_list)
+                print("\n*** Processing List: " + word_list + " ***\n")
+                gc.collect()
                 self.runner(word_list)
-
             t2 = time.perf_counter()
             print("\n*** Completed Successfully ***")
             print("Output file: " + str(new_squeaky.output_file))
             print("Total processing time: " + str(round(t2 - t1, 5)) + " sec\n")
-
         except Exception as e:
             print("Error! in director: " + str(e))
 
     def runner(self, word_list):
         try:
             processed = []
-
-            if self.unicode:
-                print("*** Removing Unicode errors ***")
-                word_list_from_file = self.get_words_from_file(word_list, True)
-                processed = self.process_words(word_list_from_file)
+            print("*** Removing Unicode errors ***")
+            word_list_from_file = self.get_words_from_file(word_list, True)
+            processed = self.process_words(word_list_from_file)
+            gc.collect()
 
             if self.min_word_length > 0:
                 filtered_len = self.filter_by_length(processed)
                 processed = filtered_len
-
-            if self.dedup_flag:
-                print("\n*** Reading current output file from disk ***")
-                existing_output_file = self.get_words_from_file(self.output_file, False)
-                deduped = self.de_duplicate(existing_output_file + processed)
+                gc.collect()
+            if self.unique_flag:
+                existing_file = self.get_words_from_file(self.output_file, False)
+                deduped = self.de_duplicate(existing_file + processed)
                 processed = deduped
                 self.utils.clear_output_file(self.output_file)
+                gc.collect()
             self.bulk_write(processed)
 
         except Exception as e:

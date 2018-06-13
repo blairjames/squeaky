@@ -26,9 +26,6 @@ class SqueakyUtils:
             new_args = argparse.ArgumentParser()
             new_args.add_argument("input_file")
             new_args.add_argument("output_file")
-            new_args.add_argument("-e", "--encoding",
-                                  help="Remove words that cause exceptions when attempting to decode to unicode.",
-                                  action="store_true", default=False)
             new_args.add_argument("-d", "--dir",
                                   help="Input a directory to process for word lists. (\".txt\" files) ",
                                   action="store_true", default=False)
