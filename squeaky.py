@@ -26,7 +26,7 @@ class Squeaky:
         except Exception as e:
             print("Error! in init: " + str(e))
 
-    def get_words_from_file(self, path_to_file: str, open_as_bytes: bool) -> List:
+    def get_words_from_file(self, path_to_file: str, open_as_bytes: bool) -> tuple:
         ''''
         Open input wordlist, read into a list to be used in the application.
         '''
@@ -40,8 +40,8 @@ class Squeaky:
             with open(path_to_file, settings) as file:
                 word_list = [line for line in file.readlines()]
             t2 = time.perf_counter()
-            print("Read word list from disk: " + str(round(t2 - t1, 5)) + " sec")
-            return word_list
+            perf_time_str = str(round(t2 - t1, 5)) + " sec"
+            return word_list, perf_time_str
         except Exception as e:
             print("Error! in get_words_from_file: " + str(e))
 
@@ -103,7 +103,6 @@ class Squeaky:
         '''
         try:
             t1 = time.perf_counter()
-            print("\n*** Removing Duplicates ***")
             start_words = sum([1 for i in word_list])
             print("Words before removal of duplicates: " + str(start_words))
             unique = set(word_list)
@@ -182,7 +181,7 @@ class Squeaky:
                 print("*** Discovering Wordlists ***")
                 [print(ls) for ls in word_lists]
                 t33 = time.perf_counter()
-                print("\nTime to walk dirs for word lists: " + str(t33 - t22))
+                print("\nTime to walk dirs for word lists: " + str(round(t33 - t22, 5)) + " sec")
                 print("number of lists: " + str(len(word_lists)))
             else:
                 word_lists.append(self.input_file)
@@ -199,9 +198,9 @@ class Squeaky:
 
     def runner(self, word_list):
         try:
-            processed = []
             print("*** Removing Unicode errors ***")
-            word_list_from_file = self.get_words_from_file(word_list, True)
+            word_list_from_file, perf_str = self.get_words_from_file(word_list, True)
+            print("Time to read input file from disk: " + perf_str)
             processed = self.process_words(word_list_from_file)
             gc.collect()
 
@@ -210,7 +209,9 @@ class Squeaky:
                 processed = filtered_len
                 gc.collect()
             if self.unique_flag:
-                existing_file = self.get_words_from_file(self.output_file, False)
+                existing_file, perf_time = self.get_words_from_file(self.output_file, False)
+                print("\n*** Removing Duplicates ***")
+                print("Time to read existing word list from disk: " + perf_time)
                 deduped = self.de_duplicate(existing_file + processed)
                 processed = deduped
                 self.utils.clear_output_file(self.output_file)
