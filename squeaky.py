@@ -203,7 +203,6 @@ class Squeaky:
             print("Time to read input file from disk: " + perf_str)
             processed = self.process_words(word_list_from_file)
             gc.collect()
-
             if self.min_word_length > 0:
                 filtered_len = self.filter_by_length(processed)
                 processed = filtered_len
