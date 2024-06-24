@@ -116,17 +116,20 @@ class Squeaky:
         except Exception as e:
             print("Error! in de_duplicate: " + str(e))
 
-    def set_instance_vars(self, args: argparse) -> bool:
+    def set_instance_vars(self, args: argparse):
         '''
         Set Instance vars using user inputs.
         '''
         try:
+            if args.unique and args.dir:
+                raise SystemExit("\nSorry! the -u and -d switches cannot be used together." 
+                               + "\nPlease use the -d switch first to consolidate the directory, " 
+                               + "then use the -u switch to remove duplicates.")
             self.unique_flag: bool = args.unique
             self.dir_flag: bool = args.dir
             self.min_word_length: int = args.len
             self.input_file: str = args.input_file
-            self.output_file = args.output_file
-            return True
+            self.output_file: str = args.output_file
         except Exception as e:
             print("Error! in set_instance_vars: " + str(e))
 
