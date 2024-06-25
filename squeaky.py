@@ -27,7 +27,7 @@ class Squeaky:
             print("Error! in init: " + str(e))
 
     def get_words_from_file(self, path_to_file: str, open_as_bytes: bool) -> tuple:
-        """ '
+        """'
         Open input wordlist, read into a list to be used in the application.
         """
         try:
@@ -117,26 +117,16 @@ class Squeaky:
             print("Error! in de_duplicate: " + str(e))
 
     def set_instance_vars(self, args: argparse):
-<<<<<<< HEAD
         """
-=======
-        '''
->>>>>>> b02ceda4ce78f73a31240348b09445509ecc0203
         Set Instance vars using user inputs.
         """
         try:
             if args.unique and args.dir:
-<<<<<<< HEAD
                 raise SystemExit(
                     "\nSorry! the -u and -d switches cannot be used together."
                     + "\nPlease use the -d switch first to consolidate the directory, "
                     + "then use the -u switch to remove duplicates."
                 )
-=======
-                raise SystemExit("\nSorry! the -u and -d switches cannot be used together." 
-                               + "\nPlease use the -d switch first to consolidate the directory, " 
-                               + "then use the -u switch to remove duplicates.")
->>>>>>> b02ceda4ce78f73a31240348b09445509ecc0203
             self.unique_flag: bool = args.unique
             self.dir_flag: bool = args.dir
             self.min_word_length: int = args.len
