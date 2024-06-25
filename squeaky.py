@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-#Squeaky takes any wordlist and cleans out problematic characters, words below set length and removes duplicates.
+# Squeaky takes any wordlist and cleans out problematic characters, words below set length and removes duplicates.
 import argparse
 import time
 import squeaky_utils
@@ -11,9 +11,9 @@ from typing import List
 
 class Squeaky:
     def __init__(self):
-        '''
+        """
         Instance variables assigned upon object construction.
-        '''
+        """
         try:
             self.input_file: str = ""
             self.output_file: str = ""
@@ -27,9 +27,9 @@ class Squeaky:
             print("Error! in init: " + str(e))
 
     def get_words_from_file(self, path_to_file: str, open_as_bytes: bool) -> tuple:
-        ''''
+        """ '
         Open input wordlist, read into a list to be used in the application.
-        '''
+        """
         try:
             if open_as_bytes:
                 settings = "rb"
@@ -46,9 +46,9 @@ class Squeaky:
             print("Error! in get_words_from_file: " + str(e))
 
     def filter_by_length(self, wrds):
-        '''
+        """
         Parse out words below the length set with the "-l" switch.
-        '''
+        """
         try:
             tp = time.perf_counter
             t1 = tp()
@@ -69,10 +69,10 @@ class Squeaky:
             print("Error! in filter_by_length: " + str(e))
 
     def process_words(self, words: List) -> List:
-        '''
+        """
         Iterates input words as bytes to avoid Unicode exceptions.
         performs controlled decode of all words to utf-8, catches any exceptions and parses them out.
-        '''
+        """
         try:
             t1 = time.perf_counter()
             starting_len: int = sum([1 for x in words])
@@ -98,9 +98,9 @@ class Squeaky:
             print("Error! in process_words: " + str(e))
 
     def de_duplicate(self, word_list):
-        '''
+        """
         Removes any duplicate entries using the "set()" function.
-        '''
+        """
         try:
             t1 = time.perf_counter()
             start_words = sum([1 for i in word_list])
@@ -117,14 +117,16 @@ class Squeaky:
             print("Error! in de_duplicate: " + str(e))
 
     def set_instance_vars(self, args: argparse):
-        '''
+        """
         Set Instance vars using user inputs.
-        '''
+        """
         try:
             if args.unique and args.dir:
-                raise SystemExit("\nSorry! the -u and -d switches cannot be used together." 
-                               + "\nPlease use the -d switch first to consolidate the directory, " 
-                               + "then use the -u switch to remove duplicates.")
+                raise SystemExit(
+                    "\nSorry! the -u and -d switches cannot be used together."
+                    + "\nPlease use the -d switch first to consolidate the directory, "
+                    + "then use the -u switch to remove duplicates."
+                )
             self.unique_flag: bool = args.unique
             self.dir_flag: bool = args.dir
             self.min_word_length: int = args.len
@@ -134,9 +136,9 @@ class Squeaky:
             print("Error! in set_instance_vars: " + str(e))
 
     def bulk_write(self, clean: List) -> bool:
-        '''
+        """
         Takes list as input and uses one big ".writelines()" to fully utilise IO buffers.
-        '''
+        """
         try:
             print("\n*** Writing to Disk ***")
             t1 = time.perf_counter()
@@ -147,14 +149,17 @@ class Squeaky:
             print("Time to write to file: " + str(round(t2 - t1, 5)) + " sec")
             return True
         except TypeError as t:
-            print("Type Error! in bulk_write. Check input iterator is not passed in as NULL. exception: " + str(t))
+            print(
+                "Type Error! in bulk_write. Check input iterator is not passed in as NULL. exception: "
+                + str(t)
+            )
         except Exception as e:
             print("Error! in bulk_write: " + str(e))
 
     def builder(self):
-        '''
+        """
         Builder Method to build new squeaky objects
-        '''
+        """
         try:
             new_squeaky = Squeaky()
             self.utils.clear_screen()
@@ -166,9 +171,9 @@ class Squeaky:
             print("Error!! in builder: " + str(e))
 
     def director(self):
-        '''
+        """
         Co-ordinates the flow of execution.
-        '''
+        """
         try:
             t1 = time.perf_counter()
             new_squeaky = Squeaky().builder()
@@ -180,11 +185,19 @@ class Squeaky:
                 add_to_word_lists = word_lists.append
                 for base, subs, all_files in os.walk(new_squeaky.input_file):
                     files = [(file) for file in all_files]
-                    [add_to_word_lists(base + "/" + f) for f in files if os.path.join(f).endswith(".txt")]
+                    [
+                        add_to_word_lists(base + "/" + f)
+                        for f in files
+                        if os.path.join(f).endswith(".txt")
+                    ]
                 print("*** Discovering Wordlists ***")
                 [print(ls) for ls in word_lists]
                 t33 = time.perf_counter()
-                print("\nTime to walk dirs for word lists: " + str(round(t33 - t22, 5)) + " sec")
+                print(
+                    "\nTime to walk dirs for word lists: "
+                    + str(round(t33 - t22, 5))
+                    + " sec"
+                )
                 print("number of lists: " + str(len(word_lists)))
             else:
                 word_lists.append(self.input_file)
@@ -211,7 +224,9 @@ class Squeaky:
                 processed = filtered_len
                 gc.collect()
             if self.unique_flag:
-                existing_file, perf_time = self.get_words_from_file(self.output_file, False)
+                existing_file, perf_time = self.get_words_from_file(
+                    self.output_file, False
+                )
                 print("\n*** Removing Duplicates ***")
                 print("Time to read existing word list from disk: " + perf_time)
                 deduped = self.de_duplicate(existing_file + processed)
@@ -223,10 +238,11 @@ class Squeaky:
         except Exception as e:
             print("Error! in runner: " + str(e))
 
+
 def main():
-    '''
+    """
     The main(), triggers execution.
-    '''
+    """
     try:
         s = Squeaky().builder()
         s.director()
@@ -234,5 +250,6 @@ def main():
     except Exception as e:
         print("Error! in squeaky.main: " + str(e))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
