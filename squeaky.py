@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-#
+
 import argparse
 import time
 import squeaky_utils
-import gc
 import os
 from typing import List
 
